@@ -15,13 +15,10 @@ Works with a [magnetic card swipe reader](https://www.officedepot.com/a/products
 **Optionally for Self-Sufficient System**
 * [Raspberry Pi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
 * [5 in LCD Display](https://www.amazon.com/ELECROW-Raspberry-Touchscreen-Monitor-HDMI-Compatible/dp/B07FDYXPT7/ref=sr_1_4?dib=eyJ2IjoiMSJ9.GhV9voQ85TOyRytiOhMKyO8L_Qp8xaC5N41N--9vN-ZACtFiDHG-aAkeTfn5-VrZRQ4lW5JHAEXf1FcE8dRQEsZrLOmGgspdWrv6aFTD-MWc11fHjbv4nP5Vja8tGpJD4iojjvTeycpRK3mfdy8ptck1UAwAcj9dMPpbQ8IPwbv8Tg7QFvWq6VC-MOjR4fzH0ylN9AyyIYuRHW5l-nmtdELRmpDCwXkMPLkzrGvwJbI.Tmry11jawFA8u2cLN1NU0RHMjGHiakvtDiUZxdJM5fI&dib_tag=se&hvadid=723067798210&hvdev=c&hvexpln=67&hvlocphy=9031488&hvnetw=g&hvocijid=13483461362344462672--&hvqmt=b&hvrand=13483461362344462672&hvtargid=kwd-2342475143970&hydadcr=24363_13517587&keywords=raspberry+pi+5+lcd+display&mcid=500b1dfb78b63b6c96cb1c8a5af9f9a5&qid=1758322932&sr=8-4)
-* 
+* [3D Printed stand](https://www.thingiverse.com/thing:7152130) 
 
 
 
 ## Author
  Audrey Reinhard
 
-
-
-## Acknowledgments
