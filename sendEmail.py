@@ -18,9 +18,10 @@ def send_email(subject, body, to_email):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
-        print("Email sent successfully!")
+        return "success!"
     except Exception as e:
         print(f"Error sending email: {e}")
+        return "error"
         
 
 def send_logs(subject, body, to_email):

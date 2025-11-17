@@ -13,6 +13,7 @@ from DatabaseFunctions import (
 # === GLOBAL VARIABLES ===
 name_value = ""
 email_value = ""
+sid_value = ""
 
 # === CARD SWIPE PROCESSING ===
 def open_new_window(action):
@@ -39,6 +40,7 @@ def open_new_window(action):
     def process_swipe():
         card_data = card_input_var.get().strip()
         print(f"Raw swipe data: '{card_data}'")
+
         card_data = card_data.replace(";", "").replace("?", "").split("=")[0]
         print(f"Cleaned card data: '{card_data}'")
 
@@ -47,60 +49,78 @@ def open_new_window(action):
             card_input_var.set("")
             return
 
+        # === CREATE USER ===
         if action == "create":
-            result = create_user(name_value, email_value, card_data)
+            result = create_user(name_value, email_value, sid_value, card_data)
             print("Create user result:", result)
 
             if result == "success":
                 entry_label.config(text="Your card has been recorded!", bg="#A3E4D7")
-                email_body = f"Your account has been created as:\n\nName: {name_value}\nEmail: {email_value}"
+                email_body = f"Your user account has been created:\n\nName: {name_value}\nEmail: {email_value}\nSID: {sid_value}"
                 send_email("Account Created", email_body, email_value)
-            elif result == "card error":
-                entry_label.config(text="Card already exists!", bg="#A3E4D7")
-            elif result == "email error":
-                entry_label.config(text="Email already exists!", bg="#A3E4D7")
-            else:
-                entry_label.config(text="An error occurred, please try again!", bg="#A3E4D7")
 
+            elif result == "card error":
+                entry_label.config(text="Card already exists!", bg="#FF9494")
+
+            elif result == "email error":
+                entry_label.config(text="Email already exists!", bg="#FF9494")
+
+            elif result == "sid error":
+                entry_label.config(text="SID already exists!", bg="#FF9494")
+
+            else:
+                entry_label.config(text="Unknown error occurred!", bg="#FF9494")
+
+        # === CHECK IN ===
         elif action == "in":
-            result = log_check_in(card_data)
+            result = log_check_in(card_data, box_value)
             print("Check-in result:", result)
 
             if result == "success":
                 now = datetime.now().isoformat(timespec='seconds')
-                entry_label.config(text="You have been checked in!", bg="#A3E4D7")
-                send_email("Check In", f"You checked in at: {now}", get_email(card_data))
-            else:
-                entry_label.config(text="Card not recognized, please try again!", bg="#A3E4D7")
+                entry_label.config(text=f"Box #{box_value} has been checked out!", bg="#A3E4D7")
+                send_email("Check Out Box", f"You checked out Box #{box_value} at: {now}", get_email(card_data))
 
+            elif result == "already_checked_in":
+                entry_label.config(text="You must return your previous box first!", bg="#FF9494")
+
+            else:
+                entry_label.config(text="Card not recognized!", bg="#FF9494")
+
+        # === CHECK OUT ===
         elif action == "out":
             result = log_check_out(card_data)
             print("Check-out result:", result)
 
             if result == "success":
                 now = datetime.now().isoformat(timespec='seconds')
-                entry_label.config(text="You have been checked out!", bg="#A3E4D7")
-                send_email("Check Out", f"You checked out at: {now}", get_email(card_data))
-            elif result == "no sesh":
-                entry_label.config(text="No session found, please check in!", bg="#A3E4D7")
-            else:
-                entry_label.config(text="Card not recognized, please try again!", bg="#A3E4D7")
+                entry_label.config(text="Box returned!", bg="#A3E4D7")
+                send_email("Box Returned", f"You returned a box at: {now}", get_email(card_data))
 
+            elif result == "no sesh":
+                entry_label.config(text="You do not have any checked-out box!", bg="#FF9494")
+
+            else:
+                entry_label.config(text="Card not recognized!", bg="#FF9494")
+
+        # === DELETE USER ===
         elif action == "delete":
             result = delete_user(card_data)
-            print("Delete account result:", result)
+            print("Delete result:", result)
 
             if result == "success":
                 entry_label.config(text="Your account has been deleted!", bg="#A3E4D7")
             else:
-                entry_label.config(text="No account found!", bg="#A3E4D7")
+                entry_label.config(text="Account not found!", bg="#FF9494")
 
+        # === EMAIL LOGS ===
         elif action == "email_logs":
             if admin_user_exists(card_data):
                 entry_label.config(text="Emailing logs...", bg="#A3E4D7")
-                print(get_admin_email(card_data))
-                send_logs("Logs", "Attached are the logs for your account:\n\n", get_admin_email(card_data))
-                entry_label.config(text="Logs emailed successfully!", bg="#A3E4D7")
+                send_logs("Logs", "Attached are the logs.", get_admin_email(card_data))
+                entry_label.config(text="Logs emailed!", bg="#A3E4D7")
+            else:
+                entry_label.config(text="Admin card not recognized!", bg="#FF9494")
 
         new_window.after(2000, new_window.destroy)
 
@@ -108,6 +128,10 @@ def open_new_window(action):
 
 # === BUTTON HANDLERS ===
 def check_in():
+    global box_value
+    box_value = box_entry.get()
+    if not box_value.isdigit():
+        return
     open_new_window("in")
 
 def check_out():
@@ -120,15 +144,15 @@ def email_logs():
     open_new_window("email_logs")
 
 def submit():
-    global name_value, email_value
+    global name_value, email_value, sid_value
     name_value = name_entry.get()
     email_value = email_entry.get()
+    sid_value = sid_entry.get()
     open_new_window("create")
 
 # === GUI SETUP ===
 base = tk.Tk()
-base.geometry("800x480")
-base.eval('tk::PlaceWindow . center')
+base.geometry("750x400")
 base.title("Swipe In System")
 base.config(bg="#F5F5F5")
 
@@ -139,45 +163,56 @@ canvas.grid_columnconfigure(1, weight=1)
 
 # Registered Users Section
 Label(canvas, text="Registered Users", font=("Helvetica", 20, "bold"),
-      bg='#FFFFFF', fg='#333333').grid(row=1, column=0, pady=10, padx=30)
+      bg='#FFFFFF', fg='#333333').grid(row=1, column=0, pady=5, padx=30)
 
-Button(canvas, text="Check In", command=check_in, font=("Helvetica", 16, "bold"),
-       bg='#D6EAF8', fg='black', relief=FLAT, bd=0, activebackground='#FCF3CF'
-).grid(row=2, column=0, pady=10, padx=30)
+# Check Out box
+Button(canvas, text="Check Out Box", command=check_in, font=("Helvetica", 16, "bold"),
+       bg='#D6EAF8', fg='black', relief=FLAT).grid(row=4, column=0, pady=5, padx=30)
 
-Button(canvas, text="Check Out", command=check_out, font=("Helvetica", 16, "bold"),
-       bg='#D6EAF8', fg='black', relief=FLAT, bd=0, activebackground='#FCF3CF'
-).grid(row=3, column=0, pady=10, padx=30)
+# Box number entry
+Label(canvas, text="Box Number", font=("Helvetica", 14),
+      bg='#FFFFFF', fg='#555555').grid(row=2, column=0, pady=1, padx=30)
+box_entry = Entry(canvas, font=("Helvetica", 14), relief=SOLID, bd=2,
+                    fg='#333333')
+box_entry.grid(row=3, column=0, pady=1, padx=30)
 
-# Create Account Section
-Label(canvas, text="Create Account", font=("Helvetica", 20, "bold"),
-      bg='#FFFFFF', fg='#333333').grid(row=1, column=1, pady=10, padx=30)
+# Return box
+Button(canvas, text="Return Box", command=check_out, font=("Helvetica", 16, "bold"),
+       bg='#D6EAF8', fg='black', relief=FLAT).grid(row=5, column=0, pady=5, padx=30)
 
-Label(canvas, text="Enter Name", font=("Helvetica", 14),
-      bg='#FFFFFF', fg='#555555').grid(row=2, column=1, pady=10, padx=30)
-
-name_entry = Entry(canvas, font=("Helvetica", 16), relief=SOLID, bd=2,
-                   fg='#333333', highlightthickness=2, highlightcolor='#FF8C8C')
-name_entry.grid(row=3, column=1, pady=10, padx=30)
-
-Label(canvas, text="Enter Email", font=("Helvetica", 14),
-      bg='#FFFFFF', fg='#555555').grid(row=4, column=1, pady=10, padx=30)
-
-email_entry = Entry(canvas, font=("Helvetica", 16), relief=SOLID, bd=2,
-                    fg='#333333', highlightthickness=2, highlightcolor='#FF8C8C')
-email_entry.grid(row=5, column=1, pady=10, padx=30)
-
-Button(canvas, text="SUBMIT", command=submit, font=("Helvetica", 14, "bold"),
-       bg='#D6EAF8', fg='black', relief=FLAT, bd=0, activebackground='#FCF3CF'
-).grid(row=6, column=1, pady=10, padx=40, ipadx=5, ipady=5)
-
+# Delete account
 Button(canvas, text="Delete Account", command=delete_account, font=("Helvetica", 14, "bold"),
-       bg='#F9E79F', fg='black', relief=FLAT, bd=0, activebackground='#FAB8AF'
-).grid(row=6, column=0, pady=10, padx=40, ipadx=5, ipady=5)
+       bg='#F9E79F', fg='black', relief=FLAT).grid(row=8, column=0, pady=5, padx=40)
 
+# Export logs
 Button(canvas, text="Export Logs", command=email_logs, font=("Helvetica", 14, "bold"),
-       bg='#D6EAF8', fg='black', relief=FLAT, bd=0, activebackground='#FCF3CF'
-).grid(row=5, column=0, pady=10, padx=40)
+       bg='#D6EAF8', fg='black', relief=FLAT).grid(row=7, column=0, pady=5, padx=40)
 
-# === START APPLICATION ===
+# Create Account header
+Label(canvas, text="Create Account", font=("Helvetica", 20, "bold"),
+      bg='#FFFFFF', fg='#333333').grid(row=1, column=1, pady=1, padx=30)
+
+# name
+Label(canvas, text="Enter Name", font=("Helvetica", 14),
+      bg='#FFFFFF').grid(row=2, column=1, pady=1, padx=30)
+name_entry = Entry(canvas, font=("Helvetica", 14), relief=SOLID, bd=2)
+name_entry.grid(row=3, column=1, pady=1, padx=30)
+
+# email
+Label(canvas, text="Enter Student Email", font=("Helvetica", 14),
+      bg='#FFFFFF').grid(row=4, column=1, pady=1, padx=30)
+email_entry = Entry(canvas, font=("Helvetica", 14), relief=SOLID, bd=2)
+email_entry.grid(row=5, column=1, pady=1, padx=30)
+
+# SID
+Label(canvas, text="Enter SID", font=("Helvetica", 14),
+      bg='#FFFFFF').grid(row=6, column=1, pady=1, padx=30)
+sid_entry = Entry(canvas, font=("Helvetica", 14), relief=SOLID, bd=2)
+sid_entry.grid(row=7, column=1, pady=1, padx=30)
+
+# submit
+Button(canvas, text="SUBMIT", command=submit, font=("Helvetica", 14, "bold"),
+       bg='#D6EAF8', fg='black', relief=FLAT).grid(row=8, column=1, pady=1, padx=40)
+
+# Start
 base.mainloop()

@@ -1,8 +1,7 @@
 from datetime import datetime
 import sqlite3
-
-def create_user(name, email, card_number):
-    conn = sqlite3.connect('swipe_system.db', timeout = 5)
+def create_user(name, email, card_number, sid):
+    conn = sqlite3.connect('swipe_system.db', timeout=5)
     c = conn.cursor()
 
     # Ensure the users table exists
@@ -11,39 +10,36 @@ def create_user(name, email, card_number):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        card_number TEXT UNIQUE NOT NULL
+        card_number TEXT UNIQUE NOT NULL,
+        sid TEXT
     )
     ''')
 
     try:
         # Insert new user
         c.execute('''
-            INSERT INTO users (name, email, card_number)
-            VALUES (?, ?, ?)
-        ''', (name, email, card_number))
+            INSERT INTO users (name, email, card_number, sid)
+            VALUES (?, ?, ?, ?)
+        ''', (name, email, card_number, sid))
         conn.commit()
         
         print(f"User '{name}' created successfully.")
         return "success"
     except sqlite3.IntegrityError as e:
         if 'email' in str(e):
-            
             print("Error: This email is already registered.")
             return "email error"
         elif 'card_number' in str(e):
-            
             print("Error: This card number is already in use.")
             return "card error"
         else:
-            
             print(f"Database error: {e}")
             return "error"
     finally:
         conn.close()
 
-
-def log_check_in(card_number):
-    conn = sqlite3.connect('swipe_system.db', timeout = 5)
+def log_check_in(card_number, box):
+    conn = sqlite3.connect('swipe_system.db', timeout=5)
     c = conn.cursor()
 
     # Find user by card_number
@@ -52,20 +48,30 @@ def log_check_in(card_number):
 
     if user:
         user_id, name = user
-        now = datetime.now().isoformat(timespec='seconds')
 
-        # Insert a new log entry with log_in_time and NULL log_out_time
-        c.execute('INSERT INTO logs (user_id, log_in_time, log_out_time) VALUES (?, ?, NULL)', (user_id, now))
+        # Check if there's already an active session (no log_out_time)
+        c.execute('SELECT id FROM logs WHERE user_id = ? AND log_out_time IS NULL', (user_id,))
+        active_log = c.fetchone()
+
+        if active_log:
+            print(f"{name} Has checked out an item and hasn't return.")
+            conn.close()
+            return "already_checked_in"
+
+        # Proceed to log the check-in
+        now = datetime.now().isoformat(timespec='seconds')
+        c.execute('INSERT INTO logs (user_id, log_in_time, box, log_out_time) VALUES (?, ?, ?, NULL)',
+                  (user_id, now, box))
         conn.commit()
-        
+
         print(f"{name} checked in at {now}")
+        conn.close()
         return "success"
     else:
-        
         print("Card not recognized.")
+        conn.close()
         return "error"
 
-    conn.close()
 
 
 def log_check_out(card_number):
@@ -173,13 +179,16 @@ def export_logs_to_text_file(output_file='user_logs.txt'):
     # Ensure logs table exists (optional safety)
     c.execute('''
         CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            log_in_time TEXT,
-            log_out_time TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        sid TEXT NOT NULL,
+        box TEXT NOT NULL,
+        log_in_time TEXT,
+        log_out_time TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
+
 
     # Join logs with user information
     c.execute('''
