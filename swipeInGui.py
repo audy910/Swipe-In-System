@@ -2,13 +2,21 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk
 from datetime import datetime
-
+import re
 from sendEmail import send_email, send_logs
 from DatabaseFunctions import (
     create_user, log_check_in, log_check_out,
     get_email, delete_user, admin_user_exists, 
     get_admin_email
 )
+
+
+def parse_card(raw):
+    raw = raw.strip().replace(";", "").replace("?", "")
+    raw = raw.split("=")[0]          
+    digits = ''.join(ch for ch in raw if ch.isdigit())
+    return digits
+
 
 # === GLOBAL VARIABLES ===
 name_value = ""
@@ -38,10 +46,10 @@ def open_new_window(action):
     new_window.after(300, card_input_entry.focus_force)
 
     def process_swipe():
-        card_data = card_input_var.get().strip()
-        print(f"Raw swipe data: '{card_data}'")
+        raw = card_input_var.get().strip()
+        print(f"Raw swipe data: '{raw}'")
 
-        card_data = card_data.replace(";", "").replace("?", "").split("=")[0]
+        card_data = parse_card(raw)
         print(f"Cleaned card data: '{card_data}'")
 
         if card_data == "E" or not card_data:
@@ -51,7 +59,7 @@ def open_new_window(action):
 
         # === CREATE USER ===
         if action == "create":
-            result = create_user(name_value, email_value, sid_value, card_data)
+            result = create_user(name_value, email_value, card_data, sid_value)
             print("Create user result:", result)
 
             if result == "success":
@@ -77,15 +85,21 @@ def open_new_window(action):
             print("Check-in result:", result)
 
             if result == "success":
-                now = datetime.now().isoformat(timespec='seconds')
-                entry_label.config(text=f"Box #{box_value} has been checked out!", bg="#A3E4D7")
-                send_email("Check Out Box", f"You checked out Box #{box_value} at: {now}", get_email(card_data))
-
+                entry_label.config(
+                    text=f"Box #{box_value} has been checked out!",
+                    bg="#A3E4D7"
+                )
             elif result == "already_checked_in":
-                entry_label.config(text="You must return your previous box first!", bg="#FF9494")
-
+                entry_label.config(
+                    text="You must return your previous box first!",
+                    bg="#FF9494"
+                )
             else:
-                entry_label.config(text="Card not recognized!", bg="#FF9494")
+                entry_label.config(
+                    text="Card not recognized!",
+                    bg="#FF9494"
+                )
+
 
         # === CHECK OUT ===
         elif action == "out":
@@ -93,15 +107,20 @@ def open_new_window(action):
             print("Check-out result:", result)
 
             if result == "success":
-                now = datetime.now().isoformat(timespec='seconds')
-                entry_label.config(text="Box returned!", bg="#A3E4D7")
-                send_email("Box Returned", f"You returned a box at: {now}", get_email(card_data))
-
+                entry_label.config(
+                    text="Item returned!",
+                    bg="#A3E4D7"
+                )
             elif result == "no sesh":
-                entry_label.config(text="You do not have any checked-out box!", bg="#FF9494")
-
+                entry_label.config(
+                    text="You do not have any checked-out box!",
+                    bg="#FF9494"
+                )
             else:
-                entry_label.config(text="Card not recognized!", bg="#FF9494")
+                entry_label.config(
+                    text="Card not recognized!",
+                    bg="#FF9494"
+                )
 
         # === DELETE USER ===
         elif action == "delete":

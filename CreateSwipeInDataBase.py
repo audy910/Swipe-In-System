@@ -108,6 +108,9 @@ def open_new_window(action):
                 entry_label.config(text="Admin Created Successfully!", bg="#A3E4D7")
                 email_body = f"Your admin account has been created as:\n\nName: {name_value}\nEmail: {email_value}"
                 send_email("Admin Account Created", email_body, email_value)
+                name_entry.delete(0, END)
+                email_entry.delete(0, END)
+
             else:
                 entry_label.config(text="Error Occurred, please try again!", bg="#FFB6C1")
 
