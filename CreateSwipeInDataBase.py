@@ -21,13 +21,14 @@ CREATE TABLE IF NOT EXISTS users (
 ''')
 
 c.execute('''
-CREATE TABLE IF NOT EXISTS logs (
+CREATE TABLE logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     sid TEXT NOT NULL,
     box TEXT NOT NULL,
     log_in_time TEXT,
     log_out_time TEXT,
+    sheet_row INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id)
 )
 ''')
