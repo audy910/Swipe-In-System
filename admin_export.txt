@@ -1,0 +1,2 @@
+id	name	email	card_number
+1	Audrey 	audianreinhard@gmail.com	6012730003212367
