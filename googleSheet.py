@@ -2,7 +2,7 @@ from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 
 # Your Google Sheet ID (from the URL)
-SHEET_ID = "12OBOqkx65LgKyfARJvX0v0qAEbl1umjTV3fogmZm7pM"
+SHEET_ID = "SHEET_ID"
 RANGE = "Sheet1!A1"
 
 def write_row_to_sheet(values):
